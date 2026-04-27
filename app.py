@@ -3,9 +3,14 @@ import pb_client
 from styles import (
     inject_global_css,
     inject_page_theme_css,
+    get_theme,
     render_message_card_html,
     render_page_header_html,
-    PRESET_THEMES,
+    render_attribution_html,
+    render_header_preview_html,
+    PALETTE_THEMES,
+    OCCASION_THEMES,
+    FONTS,
 )
 
 st.set_page_config(page_title="KudoLit", page_icon="✨", layout="centered")
@@ -91,8 +96,7 @@ def logout_button():
 def render_viewer_view(page):
     theme = page.theme if isinstance(page.theme, dict) else {}
     inject_page_theme_css(theme)
-
-    st.markdown(render_page_header_html(page.heading), unsafe_allow_html=True)
+    st.markdown(render_page_header_html(page.heading, theme), unsafe_allow_html=True)
     logout_button()
 
     messages = pb_client.get_messages(page.id)
@@ -100,6 +104,10 @@ def render_viewer_view(page):
         st.info("No kudos yet — share the user code so people can start adding messages!")
     else:
         _render_messages_grid(messages)
+
+    attribution = render_attribution_html(theme)
+    if attribution:
+        st.markdown(attribution, unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------
@@ -109,8 +117,7 @@ def render_viewer_view(page):
 def render_user_view(page):
     theme = page.theme if isinstance(page.theme, dict) else {}
     inject_page_theme_css(theme)
-
-    st.markdown(render_page_header_html(page.heading), unsafe_allow_html=True)
+    st.markdown(render_page_header_html(page.heading, theme), unsafe_allow_html=True)
     logout_button()
 
     with st.expander("Add a kudo", expanded=False):
@@ -152,6 +159,10 @@ def render_user_view(page):
     else:
         _render_messages_grid(messages)
 
+    attribution = render_attribution_html(theme)
+    if attribution:
+        st.markdown(attribution, unsafe_allow_html=True)
+
 
 # ---------------------------------------------------------------------------
 # Admin view
@@ -159,11 +170,7 @@ def render_user_view(page):
 
 def render_admin_view(page):
     inject_page_theme_css({"preset": "default"})
-
-    st.markdown(
-        '<div class="page-header"><h1>KudoLit Admin</h1></div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="page-header"><h1>KudoLit Admin</h1></div>', unsafe_allow_html=True)
     logout_button()
 
     tab_dashboard, tab_create, tab_manage = st.tabs(["Dashboard", "Create page", "Manage page"])
@@ -208,22 +215,18 @@ def render_admin_view(page):
 
     # --- Create page ---
     with tab_create:
-        with st.form("create_page"):
-            heading = st.text_input("Page heading", placeholder="Happy Birthday, Jane!")
-            preset = st.selectbox("Theme", list(PRESET_THEMES.keys()), index=0)
-            custom_color = None
-            if preset == "custom":
-                custom_color = st.color_picker("Background color", "#f8f4f0")
-            submitted = st.form_submit_button("Create page", use_container_width=True)
+        heading = st.text_input("Page heading", placeholder="Happy Birthday, Jane!", key="create_heading")
+        st.divider()
+        new_theme = _render_theme_picker("create", {})
+        st.divider()
+        if heading.strip():
+            st.markdown(render_header_preview_html(heading.strip(), new_theme), unsafe_allow_html=True)
 
-        if submitted:
+        if st.button("Create page ✨", use_container_width=True, type="primary", key="create_submit"):
             if not heading.strip():
                 st.error("Please enter a heading.")
             else:
-                theme = {"preset": preset}
-                if custom_color:
-                    theme["bg_color"] = custom_color
-                new_page = pb_client.create_page(heading.strip(), theme)
+                new_page = pb_client.create_page(heading.strip(), new_theme)
                 st.toast("Page created!")
                 st.success("New page created! Here are the access codes:")
                 st.markdown(
@@ -237,31 +240,21 @@ def render_admin_view(page):
     with tab_manage:
         st.subheader(page.heading)
 
-        with st.expander("Edit page settings"):
-            with st.form("edit_page"):
-                new_heading = st.text_input("Heading", value=page.heading)
-                current_theme = page.theme if isinstance(page.theme, dict) else {}
-                current_preset = current_theme.get("preset", "default")
-                presets = list(PRESET_THEMES.keys())
-                idx = presets.index(current_preset) if current_preset in presets else 0
-                new_preset = st.selectbox("Theme", presets, index=idx)
-                new_custom_color = None
-                if new_preset == "custom":
-                    new_custom_color = st.color_picker(
-                        "Background color",
-                        current_theme.get("bg_color", "#f8f4f0"),
-                    )
-                save = st.form_submit_button("Save changes", use_container_width=True)
-            if save:
-                theme = {"preset": new_preset}
-                if new_custom_color:
-                    theme["bg_color"] = new_custom_color
-                pb_client.update_page(page.id, {"heading": new_heading.strip(), "theme": theme})
+        with st.expander("Edit page settings", expanded=False):
+            new_heading = st.text_input("Heading", value=page.heading, key="edit_heading")
+            st.divider()
+            current_theme = page.theme if isinstance(page.theme, dict) else {}
+            new_theme = _render_theme_picker("edit", current_theme)
+            st.divider()
+            st.markdown(render_header_preview_html(new_heading or page.heading, new_theme), unsafe_allow_html=True)
+
+            if st.button("Save changes", use_container_width=True, type="primary", key="save_edit"):
+                pb_client.update_page(page.id, {"heading": new_heading.strip(), "theme": new_theme})
                 st.toast("Page updated!")
                 st.rerun()
 
         st.divider()
-        st.caption("Messages — click delete to remove a message")
+        st.caption("Messages — click 🗑 to delete")
         messages = pb_client.get_messages(page.id)
         if not messages:
             st.info("No messages on this page yet.")
@@ -274,6 +267,169 @@ def render_admin_view(page):
                     pb_client.delete_message(msg.id)
                     st.toast("Message deleted.")
                     st.rerun()
+
+
+# ---------------------------------------------------------------------------
+# Theme picker helper
+# ---------------------------------------------------------------------------
+
+def _render_theme_picker(key_prefix: str, current_theme: dict) -> dict:
+    """
+    Renders the background + font picker. Returns the complete theme dict to store.
+    Must be called outside any st.form so image selection buttons trigger reruns.
+    """
+    preset = current_theme.get("preset", "default")
+    is_occasion = preset in OCCASION_THEMES
+
+    bg_type = st.radio(
+        "Background",
+        ["Color palette", "Occasion photo"],
+        index=1 if is_occasion else 0,
+        horizontal=True,
+        key=f"{key_prefix}_bg_type",
+    )
+
+    new_theme: dict = {}
+
+    if bg_type == "Color palette":
+        palette_keys = list(PALETTE_THEMES.keys())
+        current_palette = preset if preset in PALETTE_THEMES else "default"
+        chosen = st.selectbox(
+            "Palette",
+            palette_keys,
+            index=palette_keys.index(current_palette),
+            key=f"{key_prefix}_palette",
+        )
+        new_theme["preset"] = chosen
+        if chosen == "custom":
+            new_theme["bg_color"] = st.color_picker(
+                "Background color",
+                current_theme.get("bg_color", "#f8f4f0"),
+                key=f"{key_prefix}_custom_color",
+            )
+
+    else:  # Occasion photo
+        occasion_keys = list(OCCASION_THEMES.keys())
+        current_occasion = preset if preset in OCCASION_THEMES else "birthday"
+        chosen_occasion = st.selectbox(
+            "Occasion",
+            occasion_keys,
+            index=occasion_keys.index(current_occasion),
+            format_func=lambda k: OCCASION_THEMES[k]["label"],
+            key=f"{key_prefix}_occasion",
+        )
+        new_theme["preset"] = chosen_occasion
+
+        # Reset selected image when occasion changes
+        occ_track_key = f"{key_prefix}_last_occasion"
+        idx_key = f"{key_prefix}_img_idx"
+        if st.session_state.get(occ_track_key) != chosen_occasion:
+            st.session_state[idx_key] = (
+                current_theme.get("image_index", 0)
+                if current_occasion == chosen_occasion else 0
+            )
+            st.session_state[occ_track_key] = chosen_occasion
+
+        selected_idx = st.session_state.get(idx_key, 0)
+
+        # 2-row × 5-col thumbnail grid
+        st.markdown("**Select background photo:**")
+        images = OCCASION_THEMES[chosen_occasion]["images"]
+        for row in range(2):
+            cols = st.columns(5)
+            for col_i in range(5):
+                idx = row * 5 + col_i
+                if idx >= len(images):
+                    break
+                with cols[col_i]:
+                    is_selected = idx == selected_idx
+                    border = "#e07c5a" if is_selected else "transparent"
+                    st.markdown(
+                        f'<div style="border:3px solid {border}; border-radius:6px; overflow:hidden; margin-bottom:4px;">'
+                        f'<img src="/app/static/themes/{chosen_occasion}/{idx}.jpg"'
+                        f' style="width:100%;display:block;aspect-ratio:16/9;object-fit:cover;" /></div>',
+                        unsafe_allow_html=True,
+                    )
+                    label = "✓" if is_selected else "Select"
+                    if st.button(label, key=f"{key_prefix}_img_{idx}", use_container_width=True):
+                        st.session_state[idx_key] = idx
+                        st.rerun()
+
+        new_theme["image_index"] = st.session_state.get(idx_key, 0)
+
+        # Attribution preview
+        photographer = images[new_theme["image_index"]]["photographer"]
+        username = images[new_theme["image_index"]]["username"]
+        st.caption(f"Photo by [{photographer}](https://unsplash.com/@{username}?utm_source=kudolit&utm_medium=referral) on Unsplash")
+
+    # Font + color picker
+    st.markdown("**Heading font:**")
+    font_names = list(FONTS.keys())
+    current_font = current_theme.get("font_family", "Inter")
+    font_idx = font_names.index(current_font) if current_font in font_names else 0
+    col_font, col_size, col_color = st.columns([2, 1, 1])
+    with col_font:
+        new_theme["font_family"] = st.selectbox(
+            "Font",
+            font_names,
+            index=font_idx,
+            key=f"{key_prefix}_font",
+        )
+    with col_size:
+        new_theme["font_size"] = st.slider(
+            "Size (rem)",
+            min_value=1.2,
+            max_value=3.5,
+            value=float(current_theme.get("font_size", 2.2)),
+            step=0.1,
+            key=f"{key_prefix}_font_size",
+        )
+    with col_color:
+        default_color = current_theme.get("header_color") or get_theme(new_theme).get("accent", "#e07c5a")
+        new_theme["header_color"] = st.color_picker(
+            "Color",
+            value=default_color,
+            key=f"{key_prefix}_header_color",
+        )
+
+    # Style toggles + alignment + emoji
+    st.markdown("**Heading style:**")
+    col_b, col_i, col_u, col_s, col_align, col_emoji = st.columns([1, 1, 1, 1, 2, 2])
+    with col_b:
+        new_theme["header_bold"] = st.checkbox(
+            "**B**", value=current_theme.get("header_bold", True), key=f"{key_prefix}_bold"
+        )
+    with col_i:
+        new_theme["header_italic"] = st.checkbox(
+            "_I_", value=current_theme.get("header_italic", False), key=f"{key_prefix}_italic"
+        )
+    with col_u:
+        new_theme["header_underline"] = st.checkbox(
+            "U̲", value=current_theme.get("header_underline", False), key=f"{key_prefix}_underline"
+        )
+    with col_s:
+        new_theme["header_shadow"] = st.checkbox(
+            "Shadow", value=current_theme.get("header_shadow", False), key=f"{key_prefix}_shadow"
+        )
+    with col_align:
+        align_opts = ["left", "center", "right"]
+        new_theme["header_align"] = st.radio(
+            "Align",
+            align_opts,
+            index=align_opts.index(current_theme.get("header_align", "center")),
+            horizontal=True,
+            key=f"{key_prefix}_align",
+        )
+    with col_emoji:
+        new_theme["header_emoji"] = st.text_input(
+            "Emoji (flanks heading)",
+            value=current_theme.get("header_emoji", ""),
+            max_chars=4,
+            placeholder="🎉",
+            key=f"{key_prefix}_emoji",
+        )
+
+    return new_theme
 
 
 # ---------------------------------------------------------------------------
