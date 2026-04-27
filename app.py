@@ -17,6 +17,8 @@ from styles import (
 st.set_page_config(page_title="KudoLit", page_icon="✨", layout="centered")
 inject_global_css()
 
+APP_URL = st.secrets.get("APP_URL", "https://kudolit.streamlit.app")
+
 
 # ---------------------------------------------------------------------------
 # Routing
@@ -190,12 +192,10 @@ def render_admin_view(page):
                 st.subheader(p.heading)
                 col_codes, col_actions = st.columns([3, 1])
                 with col_codes:
-                    st.markdown(
-                        f'<div class="admin-code-box"><span class="label">Admin</span><span class="code">{p.admin_code}</span></div>'
-                        f'<div class="admin-code-box"><span class="label">User</span><span class="code">{p.user_code}</span></div>'
-                        f'<div class="admin-code-box"><span class="label">Viewer</span><span class="code">{p.viewer_code}</span></div>',
-                        unsafe_allow_html=True,
-                    )
+                    for label, code in [("Admin", p.admin_code), ("User", p.user_code), ("Viewer", p.viewer_code)]:
+                        link = f"{APP_URL}?code={code}"
+                        st.markdown(f"**{label}** — [open page]({link})")
+                        st.code(code, language=None)
                 with col_actions:
                     msg_count = len(pb_client.get_messages(p.id))
                     st.metric("Messages", msg_count)
@@ -234,12 +234,10 @@ def render_admin_view(page):
                 new_page = pb_client.create_page(heading.strip(), new_theme)
                 st.toast("Page created!")
                 st.success("New page created! Here are the access codes:")
-                st.markdown(
-                    f'<div class="admin-code-box"><span class="label">Admin</span><span class="code">{new_page.admin_code}</span></div>'
-                    f'<div class="admin-code-box"><span class="label">User</span><span class="code">{new_page.user_code}</span></div>'
-                    f'<div class="admin-code-box"><span class="label">Viewer</span><span class="code">{new_page.viewer_code}</span></div>',
-                    unsafe_allow_html=True,
-                )
+                for label, code in [("Admin", new_page.admin_code), ("User", new_page.user_code), ("Viewer", new_page.viewer_code)]:
+                    link = f"{APP_URL}?code={code}"
+                    st.markdown(f"**{label}** — [open page]({link})")
+                    st.code(code, language=None)
 
     # --- Manage current page ---
     with tab_manage:
