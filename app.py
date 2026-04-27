@@ -132,9 +132,9 @@ def render_user_view(page):
         )
         image_url = st.text_input(
             "Image / GIF URL (optional)",
-            help="Paste a direct image or GIF URL. On [Giphy](https://giphy.com), find a GIF, click **Share → Copy GIF Link**, then paste it here.",
+            help="Paste a direct image or GIF URL. On [Giphy](https://giphy.com), find a GIF, right-click it and choose **Copy Image Link**, then paste it here.",
         )
-        st.caption("Find a GIF on [Giphy](https://giphy.com) → Share → Copy GIF Link → paste above.")
+        st.caption("Find a GIF on [Giphy](https://giphy.com) → right-click the GIF → Copy Image Link → paste above.")
         image_file = st.file_uploader(
             "Or upload an image",
             type=["png", "jpg", "jpeg", "gif", "webp"],
