@@ -1,3 +1,5 @@
+import base64
+import os
 import markdown as md
 
 # ---------------------------------------------------------------------------
@@ -332,6 +334,14 @@ def inject_global_css():
     st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
 
 
+def _img_to_data_url(preset: str, img_idx: int) -> str:
+    here = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(here, "static", "themes", preset, f"{img_idx}.jpg")
+    with open(path, "rb") as f:
+        data = base64.b64encode(f.read()).decode()
+    return f"data:image/jpeg;base64,{data}"
+
+
 def get_theme(theme_dict: dict) -> dict:
     preset = theme_dict.get("preset", "default")
 
@@ -339,7 +349,7 @@ def get_theme(theme_dict: dict) -> dict:
         occ = OCCASION_THEMES[preset]
         img_idx = int(theme_dict.get("image_index", 0))
         return {
-            "bg_image": f"app/static/themes/{preset}/{img_idx}.jpg",
+            "bg_image": _img_to_data_url(preset, img_idx),
             "card_bg": occ["card_bg"],
             "accent": occ["accent"],
         }
