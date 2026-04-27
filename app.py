@@ -130,7 +130,11 @@ def render_user_view(page):
             height=150,
             help="You can use **bold**, *italic*, lists, links, and more.",
         )
-        image_url = st.text_input("Image / GIF URL (optional)")
+        image_url = st.text_input(
+            "Image / GIF URL (optional)",
+            help="Paste a direct image or GIF URL. On [Giphy](https://giphy.com), find a GIF, click **Share → Copy GIF Link**, then paste it here.",
+        )
+        st.caption("Find a GIF on [Giphy](https://giphy.com) → Share → Copy GIF Link → paste above.")
         image_file = st.file_uploader(
             "Or upload an image",
             type=["png", "jpg", "jpeg", "gif", "webp"],
