@@ -147,6 +147,8 @@ def get_file_url(record, field_name: str) -> str:
     """Build the public URL for a file stored on a PocketBase record."""
     client = get_client()
     filename = getattr(record, field_name, "")
-    if not filename:
+    if isinstance(filename, list):
+        filename = filename[0] if filename else ""
+    if not filename or not isinstance(filename, str):
         return ""
-    return f"{client.base_url}/api/files/{record.collection_id}/{record.id}/{filename}"
+    return client.files.get_url(record, filename)

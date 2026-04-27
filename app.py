@@ -98,8 +98,8 @@ def render_viewer_view(page):
     messages = pb_client.get_messages(page.id)
     if not messages:
         st.info("No kudos yet — share the user code so people can start adding messages!")
-    for msg in messages:
-        _render_message(msg)
+    else:
+        _render_messages_grid(messages)
 
 
 # ---------------------------------------------------------------------------
@@ -149,8 +149,8 @@ def render_user_view(page):
     messages = pb_client.get_messages(page.id)
     if not messages:
         st.info("No kudos yet — be the first!")
-    for msg in messages:
-        _render_message(msg)
+    else:
+        _render_messages_grid(messages)
 
 
 # ---------------------------------------------------------------------------
@@ -280,22 +280,35 @@ def render_admin_view(page):
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-def _render_message(msg):
+def _message_card_html(msg) -> str:
     image_url = getattr(msg, "image_url", "") or ""
     file_url = pb_client.get_file_url(msg, "image_file")
     display_image = image_url or file_url
 
     created = getattr(msg, "created", "")
     if created:
-        created = created[:16].replace("T", " ")
+        if hasattr(created, "strftime"):
+            created = created.strftime("%Y-%m-%d %H:%M")
+        else:
+            created = str(created)[:16].replace("T", " ")
 
-    html = render_message_card_html(
+    return render_message_card_html(
         author=msg.author_name,
         content_markdown=msg.content,
         timestamp=created,
         image_url=display_image,
     )
-    st.markdown(html, unsafe_allow_html=True)
+
+
+def _render_message(msg):
+    st.markdown(_message_card_html(msg), unsafe_allow_html=True)
+
+
+def _render_messages_grid(messages):
+    cols = st.columns(3)
+    for i, msg in enumerate(messages):
+        with cols[i % 3]:
+            st.markdown(_message_card_html(msg), unsafe_allow_html=True)
 
 
 # ---------------------------------------------------------------------------

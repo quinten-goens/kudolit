@@ -32,44 +32,59 @@ PRESET_THEMES = {
 GLOBAL_CSS = """
 <style>
     .stApp > header { display: none; }
-    .block-container { max-width: 900px; padding-top: 2rem; }
+    .block-container { max-width: 1100px; padding-top: 2rem; }
+
+    .masonry-grid {
+        column-count: 3;
+        column-gap: 1rem;
+    }
+    @media (max-width: 700px) {
+        .masonry-grid { column-count: 1; }
+    }
 
     .kudo-card {
         border-radius: 12px;
-        padding: 1.5rem;
+        overflow: hidden;
         margin-bottom: 1rem;
         background: var(--card-bg, #ffffff);
         box-shadow: 0 2px 8px rgba(0,0,0,0.07);
         border: 1px solid rgba(0,0,0,0.04);
+        break-inside: avoid;
+        page-break-inside: avoid;
+        display: inline-block;
+        width: 100%;
     }
-    .kudo-card .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.75rem;
+    .kudo-card .card-image {
+        display: block;
+        width: 100%;
+        max-height: 260px;
+        object-fit: cover;
     }
-    .kudo-card .author {
-        font-weight: 600;
-        font-size: 1rem;
-        color: #333;
-    }
-    .kudo-card .timestamp {
-        font-size: 0.8rem;
-        color: #999;
+    .kudo-card .card-body {
+        padding: 1rem;
     }
     .kudo-card .card-content {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         line-height: 1.6;
         color: #444;
     }
     .kudo-card .card-content p { margin: 0 0 0.5rem 0; }
     .kudo-card .card-content p:last-child { margin-bottom: 0; }
-    .kudo-card .card-image {
+    .kudo-card .card-footer {
+        display: flex;
+        justify-content: flex-end;
+        align-items: baseline;
         margin-top: 0.75rem;
-        border-radius: 8px;
-        max-width: 100%;
-        max-height: 400px;
-        object-fit: contain;
+        gap: 0.4rem;
+    }
+    .kudo-card .author {
+        font-weight: 600;
+        font-size: 0.82rem;
+        color: #888;
+    }
+    .kudo-card .timestamp {
+        font-size: 0.72rem;
+        color: #bbb;
     }
 
     .page-header {
@@ -157,22 +172,31 @@ def inject_page_theme_css(theme_dict: dict):
     st.markdown(css, unsafe_allow_html=True)
 
 
-def render_message_card_html(author: str, content_markdown: str, timestamp: str, image_url: str = "") -> str:
-    content_html = md.markdown(content_markdown, extensions=["extra"])
-    image_html = ""
-    if image_url:
-        image_html = f'<img class="card-image" src="{image_url}" alt="attached image" />'
+def _safe_image_url(url: str) -> str:
+    """Only allow http/https URLs to prevent javascript: injection."""
+    stripped = url.strip()
+    if stripped.lower().startswith(("http://", "https://")):
+        return _escape(stripped)
+    return ""
 
-    return f"""
-    <div class="kudo-card">
-        <div class="card-header">
-            <span class="author">{_escape(author)}</span>
-            <span class="timestamp">{_escape(timestamp)}</span>
-        </div>
-        <div class="card-content">{content_html}</div>
-        {image_html}
-    </div>
-    """
+
+def render_message_card_html(author: str, content_markdown: str, timestamp: str, image_url: str = "") -> str:
+    # safe_mode="escape" prevents raw HTML passthrough in user content
+    content_html = md.markdown(content_markdown, extensions=["extra"], safe_mode="escape")
+    safe_url = _safe_image_url(image_url) if image_url else ""
+    image_html = f'<img class="card-image" src="{safe_url}" alt="" />' if safe_url else ""
+    return (
+        f'<div class="kudo-card">'
+        f'{image_html}'
+        f'<div class="card-body">'
+        f'<div class="card-content">{content_html}</div>'
+        f'<div class="card-footer">'
+        f'<span class="timestamp">{_escape(timestamp)}</span>'
+        f'<span class="author">— {_escape(author)}</span>'
+        f'</div>'
+        f'</div>'
+        f'</div>'
+    )
 
 
 def render_page_header_html(heading: str) -> str:
