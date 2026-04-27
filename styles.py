@@ -412,6 +412,12 @@ def inject_page_theme_css(theme_dict: dict):
             text-decoration: {text_deco};
             text-shadow: {text_shadow};
         }}
+        [data-testid="stForm"] {{
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            border: none;
+        }}
     </style>"""
     st.markdown(css, unsafe_allow_html=True)
 

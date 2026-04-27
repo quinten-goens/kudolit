@@ -121,21 +121,21 @@ def render_user_view(page):
     st.markdown(render_page_header_html(page.heading, theme), unsafe_allow_html=True)
     logout_button()
 
-    with st.expander("Add a kudo", expanded=False):
-        with st.form("new_message", clear_on_submit=True):
-            author = st.text_input("Your name", max_chars=100)
-            content = st.text_area(
-                "Your message (markdown supported)",
-                max_chars=5000,
-                height=150,
-                help="You can use **bold**, *italic*, lists, links, and more.",
-            )
-            image_url = st.text_input("Image / GIF URL (optional)")
-            image_file = st.file_uploader(
-                "Or upload an image",
-                type=["png", "jpg", "jpeg", "gif", "webp"],
-            )
-            submitted = st.form_submit_button("Send kudo ✨", use_container_width=True)
+    with st.form("new_message", clear_on_submit=True):
+        st.markdown("**Add a kudo**")
+        author = st.text_input("Your name", max_chars=100)
+        content = st.text_area(
+            "Your message (markdown supported)",
+            max_chars=5000,
+            height=150,
+            help="You can use **bold**, *italic*, lists, links, and more.",
+        )
+        image_url = st.text_input("Image / GIF URL (optional)")
+        image_file = st.file_uploader(
+            "Or upload an image",
+            type=["png", "jpg", "jpeg", "gif", "webp"],
+        )
+        submitted = st.form_submit_button("Send kudo ✨", use_container_width=True)
 
         if submitted:
             if not author.strip():
