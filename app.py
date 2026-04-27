@@ -196,7 +196,7 @@ def render_admin_view(page):
                         link = f"{APP_URL}?code={code}"
                         c_label, c_code, c_btn = st.columns([1, 2, 1])
                         with c_label:
-                            st.markdown(f"**{label}**")
+                            st.markdown(f'<p style="margin:0;padding-top:0.6rem;font-weight:600">{label}</p>', unsafe_allow_html=True)
                         with c_code:
                             st.code(code, language=None)
                         with c_btn:
@@ -243,7 +243,7 @@ def render_admin_view(page):
                     link = f"{APP_URL}?code={code}"
                     c_label, c_code, c_btn = st.columns([1, 2, 1])
                     with c_label:
-                        st.markdown(f"**{label}**")
+                        st.markdown(f'<p style="margin:0;padding-top:0.6rem;font-weight:600">{label}</p>', unsafe_allow_html=True)
                     with c_code:
                         st.code(code, language=None)
                     with c_btn:
