@@ -194,7 +194,7 @@ def render_admin_view(page):
                 with col_codes:
                     for label, code in [("Admin", p.admin_code), ("User", p.user_code), ("Viewer", p.viewer_code)]:
                         link = f"{APP_URL}?code={code}"
-                        c_label, c_code, c_btn = st.columns([1, 2, 1])
+                        c_label, c_code, c_btn, _, _ = st.columns([1, 2, 1, 1, 1])
                         with c_label:
                             st.markdown(f'<p style="margin:0;padding-top:0.6rem;font-weight:600">{label}</p>', unsafe_allow_html=True)
                         with c_code:
