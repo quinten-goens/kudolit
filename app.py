@@ -194,8 +194,13 @@ def render_admin_view(page):
                 with col_codes:
                     for label, code in [("Admin", p.admin_code), ("User", p.user_code), ("Viewer", p.viewer_code)]:
                         link = f"{APP_URL}?code={code}"
-                        st.markdown(f"**{label}** — [open page]({link})")
-                        st.code(code, language=None)
+                        c_label, c_code, c_btn = st.columns([1, 2, 1])
+                        with c_label:
+                            st.markdown(f"**{label}**")
+                        with c_code:
+                            st.code(code, language=None)
+                        with c_btn:
+                            st.link_button("Open", link, use_container_width=True)
                 with col_actions:
                     msg_count = len(pb_client.get_messages(p.id))
                     st.metric("Messages", msg_count)
@@ -236,8 +241,13 @@ def render_admin_view(page):
                 st.success("New page created! Here are the access codes:")
                 for label, code in [("Admin", new_page.admin_code), ("User", new_page.user_code), ("Viewer", new_page.viewer_code)]:
                     link = f"{APP_URL}?code={code}"
-                    st.markdown(f"**{label}** — [open page]({link})")
-                    st.code(code, language=None)
+                    c_label, c_code, c_btn = st.columns([1, 2, 1])
+                    with c_label:
+                        st.markdown(f"**{label}**")
+                    with c_code:
+                        st.code(code, language=None)
+                    with c_btn:
+                        st.link_button("Open", link, use_container_width=True)
 
     # --- Manage current page ---
     with tab_manage:
