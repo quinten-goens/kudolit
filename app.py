@@ -346,7 +346,7 @@ def _render_theme_picker(key_prefix: str, current_theme: dict) -> dict:
                     border = "#e07c5a" if is_selected else "transparent"
                     st.markdown(
                         f'<div style="border:3px solid {border}; border-radius:6px; overflow:hidden; margin-bottom:4px;">'
-                        f'<img src="/app/static/themes/{chosen_occasion}/{idx}.jpg"'
+                        f'<img src="app/static/themes/{chosen_occasion}/{idx}.jpg"'
                         f' style="width:100%;display:block;aspect-ratio:16/9;object-fit:cover;" /></div>',
                         unsafe_allow_html=True,
                     )

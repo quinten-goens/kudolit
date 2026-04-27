@@ -339,7 +339,7 @@ def get_theme(theme_dict: dict) -> dict:
         occ = OCCASION_THEMES[preset]
         img_idx = int(theme_dict.get("image_index", 0))
         return {
-            "bg_image": f"/app/static/themes/{preset}/{img_idx}.jpg",
+            "bg_image": f"app/static/themes/{preset}/{img_idx}.jpg",
             "card_bg": occ["card_bg"],
             "accent": occ["accent"],
         }
