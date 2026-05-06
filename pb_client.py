@@ -13,7 +13,7 @@ def generate_code(length: int = 10) -> str:
 def _get_client() -> PocketBase:
     url = st.secrets["POCKETBASE_URL"]
     client = PocketBase(url)
-    client.admins.auth_with_password(
+    client.collection("_superusers").auth_with_password(
         st.secrets["POCKETBASE_EMAIL"],
         st.secrets["POCKETBASE_PASSWORD"],
     )
